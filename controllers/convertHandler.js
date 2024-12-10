@@ -1,64 +1,87 @@
-const units = {
-  gal: { returnUnit: 'L', factor: 3.78541 },
-  L: { returnUnit: 'gal', factor: 1 / 3.78541 },
-  lbs: { returnUnit: 'kg', factor: 0.453592 },
-  kg: { returnUnit: 'lbs', factor: 1 / 0.453592},
-  mi: { returnUnit: 'km', factor: 1.60934 },
-  km: { returnUnit: 'mi', factor: 1 / 1.60934 }
+const conversionRates = {
+  gal: 3.78541, // Gallons to Liters
+  L: 1 / 3.78541, // Liters to Gallons
+  lbs: 0.453592, // Pounds to Kilograms
+  kg: 1 / 0.453592, // Kilograms to Pounds
+  mi: 1.60934, // Miles to Kilometers
+  km: 1 / 1.60934, // Kilometers to Miles
 };
 
-const validUnits = Object.keys(units);
+const units = {
+  gal: "gallons",
+  L: "liters",
+  lbs: "pounds",
+  kg: "kilograms",
+  mi: "miles",
+  km: "kilometers",
+};
 
-function ConvertHandler() {
+class ConvertHandler {
+  // Parse input to extract number and unit
+  parseInput(input) {
+    const numMatch = input.match(/^([.\d/]+)?/);
+    const unitMatch = input.match(/[a-zA-Z]+$/);
+    const num = numMatch[0];
+    const unit = unitMatch ? unitMatch[0] : null;
+
+    return { num, unit };
+  }
+
+  // Validate and parse number
+  getNum(input) {
+    const { num } = this.parseInput(input);
   
-  this.getNum = function(input) {
-    let result = input.match(/[.\d\/]+/g) || ['1'];
-    let numString = result[0];
-
-    if (numString.includes('/')) {
-      let fractions = numString.split('/');
-      if (fractions.length > 2) return 'invalid number';
-      return fractions[0] / fractions[1];
+    if (!num) return 1; // Default to 1 if no number is provided
+  
+    // Check for multiple slashes (double-fraction)
+    if ((num.match(/\//g) || []).length > 1) {
+      return "invalid number";
     }
-    return parseFloat(numString);
-  };
   
-  this.getUnit = function(input) {
-    let result = input.match('/[a-zA-Z]+/g');
-    if (!result || !validUnits.includes(result[0].toLowerCase())) return 'invalid unit';
-    return result[0].toLowerCase();
-  };
+    const fractionRegex = /^[\d]+(\.[\d]+)?\/[\d]+(\.[\d]+)?$/;
+    if (fractionRegex.test(num)) {
+      const [numerator, denominator] = num.split('/').map(Number);
+      if (!denominator || isNaN(numerator)) return "invalid number"; // Catch invalid fractions
+      return parseFloat((numerator / denominator).toFixed(5));
+    }
   
-  this.getReturnUnit = function(initUnit) {
-    let result;
-    
-    return result;
-  };
+    const parsedNum = parseFloat(num);
+    return isNaN(parsedNum) ? "invalid number" : parsedNum;
+  }
 
-  this.spellOutUnit = function(unit) {
-    const unitNames = {
-      gal: 'gallons',
-      L: 'liters',
-      lbs: 'pounds',
-      kg: 'kilograms',
-      mi: 'miles',
-      km: 'kilometers'
+  // Validate unit
+  getUnit(input) {
+    const { unit } = this.parseInput(input);
+    const lowerCaseUnit = unit?.toLowerCase();
+    if (!lowerCaseUnit) return "invalid unit";
+
+    const validUnits = ["gal", "l", "lbs", "kg", "mi", "km"];
+    return validUnits.includes(lowerCaseUnit) ? (lowerCaseUnit === "l" ? "L" : lowerCaseUnit) : "invalid unit";
+  }
+
+  // Get return unit for conversions
+  getReturnUnit(unit) {
+    const unitMap = {
+      gal: "L",
+      L: "gal",
+      lbs: "kg",
+      kg: "lbs",
+      mi: "km",
+      km: "mi",
     };
-    return unitNames[unit] || 'invalid unit';
-  };
-  
-  this.convert = function(initNum, initUnit) {
-    const unit = units[initUnit];
-  if (!unit) return 'invalid unit';
-  return parseFloat((initNum * unit.factor).toFixed(5));
-  };
-  
-  this.getString = function(initNum, initUnit, returnNum, returnUnit) {
-    let result;
-    
-    return result;
-  };
-  
+    return unitMap[unit] || "invalid unit";
+  }
+
+  // Get the full name of a unit
+  spellOutUnit(unit) {
+    return units[unit] || null;
+  }
+
+  // Convert the number
+  convert(num, unit) {
+    const rate = conversionRates[unit];
+    return rate ? parseFloat((num * rate).toFixed(5)) : null;
+  }
 }
 
 module.exports = ConvertHandler;
